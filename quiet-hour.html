@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тихий час — категории и важность</title>
+<style>
+  :root {
+    --bg:#0f1115; --panel:#171a21; --panel-2:#1e222b; --text:#e6e8ee; --muted:#8b93a7;
+    --accent:#6c8cff; --urgent:#ff6b6b; --normal:#f0b429; --spam:#5a6270; --border:#2a2f3a; --radius:14px;
+  }
+  html[data-theme="light"] {
+    --bg:#f4f6fb; --panel:#fff; --panel-2:#f0f3fa; --text:#1a1d26; --muted:#6b7387;
+    --accent:#4a6cf7; --urgent:#e5484d; --normal:#d97706; --spam:#9aa1b1; --border:#e2e6f0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
+  button{font-family:inherit}
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--panel);position:sticky;top:0;z-index:20}
+  .logo{font-weight:700;font-size:18px;display:flex;gap:8px;align-items:center;cursor:pointer}
+  .logo span{color:var(--accent)}
+  .header-right{display:flex;gap:10px;align-items:center}
+  .icon-btn{background:var(--panel-2);border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+  .icon-btn:hover{color:var(--text);border-color:var(--muted)}
+  .icon-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .badge{font-size:12px;color:var(--muted);border:1px solid var(--border);padding:6px 12px;border-radius:999px}
+  .badge b{color:var(--accent)}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+  h2{font-size:13px;margin:0 0 14px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer;transition:all .15s}
+  .btn:hover{color:var(--text);border-color:var(--muted)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{filter:brightness(1.1)}
+  .btn.ghost-danger:hover{color:var(--urgent);border-color:var(--urgent)}
+  .btn.big{padding:10px 18px;font-size:14px}
+  .screen{display:none}
+  .screen.active{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .app-wrap{max-width:1100px;margin:0 auto;padding:24px;display:grid;grid-template-columns:1fr 340px;gap:24px}
+  @media(max-width:900px){.app-wrap{grid-template-columns:1fr}}
+  .digest{background:linear-gradient(135deg,#1b2340,var(--panel));border:1px solid #2c3a66;margin-bottom:24px}
+  html[data-theme="light"] .digest{background:linear-gradient(135deg,#e8ecff,var(--panel));border-color:#c9d4ff}
+  .digest .count{font-size:34px;font-weight:800;color:var(--accent);line-height:1}
+  .digest p{margin:8px 0 0;color:var(--muted);font-size:14px;line-height:1.5}
+  .mode-switch{display:flex;align-items:center;gap:10px;margin-bottom:16px;background:var(--panel-2);border:1px solid var(--border);border-radius:12px;padding:6px}
+  .mode-btn{flex:1;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);transition:all .15s;text-align:center;border:none;background:none;cursor:pointer}
+  .mode-btn.active{background:var(--accent);color:#fff}
+  .chips{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .chip{background:var(--panel-2);border:1px solid var(--border);color:var(--muted);padding:8px 14px;border-radius:999px;cursor:pointer;font-size:13px;transition:all .15s;display:flex;align-items:center;gap:6px}
+  .chip:hover{color:var(--text)}
+  .chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .chip .n{opacity:.75;margin-left:2px}
+  .chip .chip-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .group{margin-bottom:20px}
+  .group-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .group-title .gt-dot{width:10px;height:10px;border-radius:50%}
+  .list{display:flex;flex-direction:column;gap:10px}
+  .item{display:flex;gap:14px;align-items:flex-start;background:var(--panel-2);border:1px solid var(--border);border-radius:12px;padding:14px;transition:opacity .2s,transform .2s,border-color .3s}
+  .item.new{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .item.removing{opacity:0;transform:translateX(20px)}
+  .dot{width:10px;height:10px;border-radius:50%;margin-top:6px;flex-shrink:0}
+  .dot.urgent{background:var(--urgent);box-shadow:0 0 8px var(--urgent)}
+  .dot.normal{background:var(--normal)}
+  .dot.spam{background:var(--spam)}
+  .item-body{flex:1;min-width:0}
+  .item-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+  .item-title{font-weight:600;font-size:14px}
+  .item-src{font-size:12px;color:var(--muted);white-space:nowrap}
+  .item-text{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.45}
+  .item-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center}
+  .cat-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;color:#fff}
+  .imp-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;padding:3px 8px;border-radius:999px}
+  .imp-badge.urgent{background:color-mix(in srgb,var(--urgent) 18%,transparent);color:var(--urgent)}
+  .imp-badge.normal{background:color-mix(in srgb,var(--normal) 18%,transparent);color:var(--normal)}
+  .imp-badge.spam{background:color-mix(in srgb,var(--spam) 22%,transparent);color:var(--muted)}
+  .item-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+  .item-actions select{background:var(--panel);border:1px solid var(--border);color:var(--muted);font-size:12px;padding:5px 8px;border-radius:8px;font-family:inherit;cursor:pointer}
+  .empty{color:var(--muted);font-size:14px;text-align:center;padding:30px 0}
+  .settings label{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .settings label:last-child{border-bottom:none}
+  .switch{position:relative;width:40px;height:22px;flex-shrink:0}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:var(--panel-2);border:1px solid var(--border);border-radius:999px;cursor:pointer;transition:.2s}
+  .slider::before{content:"";position:absolute;width:16px;height:16px;left:2px;top:2px;background:var(--muted);border-radius:50%;transition:.2s}
+  .switch input:checked + .slider{background:var(--accent);border-color:var(--accent)}
+  .switch input:checked + .slider::before{transform:translateX(18px);background:#fff}
+  .stat-row{display:flex;justify-content:space-between;font-size:13px;padding:8px 0;color:var(--muted)}
+  .stat-row b{color:var(--text)}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--accent);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:50}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .quick-add{display:flex;align-items:center;gap:8px;margin-top:14px}
+  .quick-add input{flex:1;background:var(--panel-2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-size:14px;font-family:inherit}
+  .quick-add input:focus{outline:none;border-color:var(--accent)}
+  .settings-wrap{max-width:900px;margin:0 auto;padding:32px 24px}
+  .settings-title{font-size:26px;margin:0 0 6px}
+  .settings-sub{color:var(--muted);font-size:14px;margin:0 0 28px}
+  .settings-section{margin-bottom:24px}
+  .settings-section .card{padding:22px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .field input,.field select{background:var(--panel-2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-size:14px;font-family:inherit;transition:border-color .15s}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--accent)}
+  .cat-list{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+  .cat-row{display:flex;align-items:center;gap:12px;background:var(--panel-2);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+  .cat-row .cat-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+  .cat-row .cat-info{flex:1;min-width:0}
+  .cat-row .cat-name{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+  .cat-row .cat-name .sys-tag{font-size:10px;font-weight:600;color:var(--muted);border:1px solid var(--border);padding:1px 6px;border-radius:999px}
+  .cat-row .cat-kw{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .cat-row .cat-actions{display:flex;gap:6px;flex-shrink:0}
+  .cat-form{background:var(--panel-2);border:1px solid var(--accent);border-radius:12px;padding:16px;margin-top:10px}
+  .cat-form .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  @media(max-width:600px){.cat-form .form-grid{grid-template-columns:1fr}}
+  .palette{display:flex;gap:6px;flex-wrap:wrap}
+  .palette .swatch{width:28px;height:28px;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:all .15s}
+  .palette .swatch:hover{transform:scale(1.1)}
+  .palette .swatch.selected{border-color:var(--text)}
+  .emoji-pick{display:flex;gap:4px;flex-wrap:wrap}
+  .emoji-pick .ep{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;border:1px solid var(--border);background:var(--panel)}
+  .emoji-pick .ep.selected{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--panel))}
+  .danger-zone{border:1px solid color-mix(in srgb,var(--urgent) 40%,var(--border));border-radius:12px;padding:16px;background:color-mix(in srgb,var(--urgent) 6%,var(--panel))}
+  .danger-zone .dz-title{font-size:14px;font-weight:600;color:var(--urgent);margin-bottom:6px}
+  .danger-zone p{font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.5}
+  .settings-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
+  .preview-box{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:ui-monospace,monospace;font-size:12px;color:var(--muted);max-height:200px;overflow:auto;white-space:pre-wrap;word-break:break-word;margin-top:12px;display:none}
+  .preview-box.show{display:block}
+  .export-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px}
+  .export-card{background:var(--panel-2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all .15s}
+  .export-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .export-card .eico{font-size:24px;margin-bottom:8px}
+  .export-card .ename{font-size:13px;font-weight:600}
+  .export-card .edesc{font-size:11px;color:var(--muted);margin-top:4px}
+  .file-input{display:none}
+  .days{display:flex;gap:6px;flex-wrap:wrap}
+  .day{width:42px;height:42px;border-radius:10px;border:1px solid var(--border);background:var(--panel-2);color:var(--muted);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s;user-select:none}
+  .day:hover{color:var(--text);border-color:var(--muted)}
+  .day.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo" id="logo">🌙 Тихий час<span>.</span></div>
+  <div class="header-right">
+    <span class="badge">Демо · <b>категории + важность</b></span>
+    <button class="icon-btn active" id="btnApp" title="Приложение">⚡</button>
+    <button class="icon-btn" id="btnSettings" title="Настройки">⚙️</button>
+    <button class="icon-btn" id="btnTheme" title="Сменить тему">🌓</button>
+  </div>
+</header>
+
+<div class="screen active" id="screen-app">
+  <div class="app-wrap">
+    <section>
+      <div class="card digest">
+        <h2>Дайджест на сегодня</h2>
+        <div class="count" id="digestCount">0</div>
+        <p id="digestText"></p>
+      </div>
+      <div class="mode-switch">
+        <button class="mode-btn active" data-mode="importance">По важности</button>
+        <button class="mode-btn" data-mode="category">По категориям</button>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div id="listContainer"></div>
+      <div class="quick-add" id="quickAdd" style="display:none;">
+        <input type="text" id="quickAddInput" placeholder="Новый отсек, например «Учёба»">
+        <button class="btn primary" id="quickAddBtn">+ Добавить отсек</button>
+      </div>
+    </section>
+    <aside>
+      <div class="card settings" style="margin-bottom:24px;">
+        <h2>Настройки</h2>
+        <label>Скрывать уведомления в нерабочее время
+          <span class="switch"><input type="checkbox" id="optQuiet" checked><span class="slider"></span></span>
+        </label>
+        <label>Автоотписка от рассылок
+          <span class="switch"><input type="checkbox" id="optUnsub" checked><span class="slider"></span></span>
+        </label>
+        <label>Объединять письма в дайджест
+          <span class="switch"><input type="checkbox" id="optDigest" checked><span class="slider"></span></span>
+        </label>
+      </div>
+      <div class="card" style="margin-bottom:24px;">
+        <h2>Сэкономлено времени</h2>
+        <div class="stat-row"><span>Обработано сообщений</span><b id="statProcessed">0</b></div>
+        <div class="stat-row"><span>Отфильтровано спама</span><b id="statSpam">0</b></div>
+        <div class="stat-row"><span>Оценка экономии</span><b id="statSaved">0 мин</b></div>
+        <div class="stat-row"><span>Отсеков</span><b id="statCats">0</b></div>
+      </div>
+      <div class="card">
+        <h2>Поток</h2>
+        <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
+          Имитация входящих
+          <span class="switch"><input type="checkbox" id="optStream"><span class="slider"></span></span>
+        </label>
+        <div class="stat-row" style="margin-top:6px;"><span>Новых за сессию</span><b id="statStreamed">0</b></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="screen" id="screen-settings">
+  <div class="settings-wrap">
+    <h1 class="settings-title">Настройки</h1>
+    <p class="settings-sub">Категории, отображение, данные и приватность</p>
+
+    <div class="settings-section">
+      <div class="card">
+        <h2>Мои отсеки</h2>
+        <p style="font-size:13px;color:var(--muted);margin:0 0 16px;line-height:1.5;">Создавайте свои отсеки и задавайте ключевые слова — AI-ассистент будет раскладывать сообщения по ним и определять важность.</p>
+        <div class="cat-list" id="catList"></div>
+        <button class="btn primary" id="btnAddCat">+ Добавить отсек</button>
+        <div class="cat-form" id="catForm" style="display:none;">
+          <div class="form-grid">
+            <div class="field"><label>Название</label><input type="text" id="catNameInput" placeholder="Например, Семья"></div>
+            <div class="field"><label>Ключевые слова для AI</label><input type="text" id="catKwInput" placeholder="мама, папа, семейный чат"></div>
+          </div>
+          <div class="field" style="margin-bottom:12px;"><label>Цвет</label><div class="palette" id="catPalette"></div></div>
+          <div class="field" style="margin-bottom:16px;"><label>Иконка</label><div class="emoji-pick" id="catEmoji"></div></div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button class="btn" id="catCancel">Отмена</button>
+            <button class="btn primary" id="catSave">Сохранить отсек</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="card">
+        <h2>Отображение</h2>
+        <div class="field" style="margin-bottom:16px;">
+          <label>Переключатель в приложении</label>
+          <select id="displayMode">
+            <option value="filter">Фильтрует список</option>
+            <option value="group" selected>Группирует список</option>
+          </select>
+        </div>
+        <div class="settings" style="border-top:1px solid var(--border);padding-top:8px;">
+          <label>Показывать кнопку «+ Отсек» в приложении
+            <span class="switch"><input type="checkbox" id="optQuickAdd" checked><span class="slider"></span></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="card">
+        <h2>Расписание дайджеста</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px;">
+          <div class="field"><label>Время отправки</label><input type="time" id="digestTime" value="09:00"></div>
+          <div class="field"><label>Периодичность</label>
+            <select id="digestFreq">
+              <option value="daily">Каждый день</option>
+              <option value="weekdays">По будням</option>
+              <option value="weekly">Раз в неделю</option>
+              <option value="custom">Свои дни</option>
+            </select>
+          </div>
+          <div class="field"><label>Формат</label>
+            <select id="digestFormat">
+              <option value="short">Короткий (только срочное)</option>
+              <option value="full" selected>Полный (все категории)</option>
+              <option value="digest">Только сводка</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:12px;"><label>Дни отправки</label></div>
+        <div class="days" id="daysPicker" style="margin-bottom:20px;">
+          <div class="day" data-day="1">Пн</div><div class="day" data-day="2">Вт</div>
+          <div class="day" data-day="3">Ср</div><div class="day" data-day="4">Чт</div>
+          <div class="day on" data-day="5">Пт</div><div class="day" data-day="6">Сб</div>
+          <div class="day" data-day="0">Вс</div>
+        </div>
+        <div class="sched-preview" id="schedPreview" style="background:var(--panel-2);border:1px dashed var(--border);border-radius:10px;padding:14px;font-size:13px;color:var(--muted);line-height:1.6;"></div>
+        <div class="settings-actions">
+          <button class="btn" onclick="toast('Расписание сброшено')">Сбросить</button>
+          <button class="btn primary" id="saveSchedule">Сохранить расписание</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="card">
+        <h2>Экспорт данных</h2>
+        <p style="font-size:13px;color:var(--muted);margin:0 0 16px;line-height:1.5;">Выгрузите сообщения, отсеки и настройки в удобном формате.</p>
+        <div class="export-grid">
+          <div class="export-card" data-export="json"><div class="eico">🗄️</div><div class="ename">JSON</div><div class="edesc">Полный дамп</div></div>
+          <div class="export-card" data-export="csv"><div class="eico">📊</div><div class="ename">CSV</div><div class="edesc">Для таблиц</div></div>
+          <div class="export-card" data-export="md"><div class="eico">📝</div><div class="ename">Markdown</div><div class="edesc">Читаемый отчёт</div></div>
+          <div class="export-card" data-export="clipboard"><div class="eico">📋</div><div class="ename">В буфер</div><div class="edesc">JSON в клипборд</div></div>
+        </div>
+        <div class="preview-box" id="exportPreview"></div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="card">
+        <h2>Импорт данных</h2>
+        <p style="font-size:13px;color:var(--muted);margin:0 0 16px;line-height:1.5;">Загрузите ранее экспортированный JSON — сообщения и категории восстановятся.</p>
+        <input type="file" id="importFile" class="file-input" accept=".json,application/json">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn" id="btnImport">📂 Выбрать файл</button>
+          <button class="btn primary" id="btnImportApply" disabled style="opacity:.5;">Применить импорт</button>
+        </div>
+        <div class="preview-box" id="importPreview"></div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="danger-zone">
+        <div class="dz-title">⚠️ Опасная зона</div>
+        <p>Сброс вернёт сообщения, отсеки и настройки к исходному состоянию.</p>
+        <button class="btn ghost-danger" id="btnResetAll">Удалить все данные</button>
+      </div>
+    </div>
+
+    <div class="settings-actions">
+      <button class="btn" onclick="show('app')">Назад в приложение</button>
+      <button class="btn primary big" id="saveAll">Сохранить всё</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const root=document.documentElement;
+const savedTheme=localStorage.getItem("qh-theme");
+if(savedTheme)root.dataset.theme=savedTheme;
+document.getElementById("btnTheme").onclick=()=>{const n=root.dataset.theme==="light"?"dark":"light";root.dataset.theme=n;localStorage.setItem("qh-theme",n)};
+
+let toastTimer;
+function toast(msg){const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2200)}
+
+const screens={app:document.getElementById("screen-app"),settings:document.getElementById("screen-settings")};
+const navButtons={app:document.getElementById("btnApp"),settings:document.getElementById("btnSettings")};
+function show(name){Object.values(screens).forEach(s=>s.classList.remove("active"));screens[name].classList.add("active");Object.entries(navButtons).forEach(([k,b])=>b.classList.toggle("active",k===name));window.scrollTo({top:0,behavior:"smooth"})}
+document.getElementById("logo").onclick=()=>show("app");
+document.getElementById("btnApp").onclick=()=>show("app");
+document.getElementById("btnSettings").onclick=()=>{show("settings");renderCatList()};
+
+const PALETTE=["#6c8cff","#22c55e","#f0b429","#ff6b6b","#a855f7","#06b6d4","#ec4899","#64748b"];
+const EMOJIS=["👨‍👩‍👧","💼","🙂","💰","📣","📚","🏠","❤️","🎮","✈️","🩺","🛒"];
+let categories=[
+ {id:"family",name:"Семья",color:"#22c55e",emoji:"👨‍👩‍👧",kw:"мама, папа, родственники, семейный чат",sys:false},
+ {id:"work",name:"Работа",color:"#6c8cff",emoji:"💼",kw:"коллега, ревью, дедлайн, созвон, проект",sys:false},
+ {id:"personal",name:"Личное",color:"#a855f7",emoji:"🙂",kw:"друзья, личное, хобби",sys:false},
+ {id:"finance",name:"Финансы",color:"#f0b429",emoji:"💰",kw:"счёт, оплата, банк, перевод, подписка",sys:false},
+ {id:"spam",name:"Спам",color:"#64748b",emoji:"📣",kw:"скидка, акция, рассылка, промо",sys:false},
+];
+let uncategorized={id:"uncategorized",name:"Без категории",color:"#8b93a7",emoji:"📥",kw:"",sys:true};
+let editingCatId=null,selectedColor=PALETTE[0],selectedEmoji=EMOJIS[0];
+function findCat(id){if(id===uncategorized.id)return uncategorized;return categories.find(c=>c.id===id)||uncategorized}
+function allCats(){return [...categories,uncategorized]}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+function renderCatList(){
+ const el=document.getElementById("catList");
+ el.innerHTML=allCats().map(c=>`
+  <div class="cat-row">
+   <div class="cat-ico" style="background:${c.color}22;color:${c.color}">${c.emoji}</div>
+   <div class="cat-info"><div class="cat-name">${escapeHtml(c.name)} ${c.sys?'<span class="sys-tag">системный</span>':''}</div>
+    <div class="cat-kw">${c.kw?"AI: "+escapeHtml(c.kw):"ключевые слова не заданы"}</div></div>
+   <div class="cat-actions">${c.sys?"":`<button class="btn" data-edit-cat="${c.id}">✏️</button><button class="btn ghost-danger" data-del-cat="${c.id}">🗑</button>`}</div>
+  </div>`).join("");
+ el.querySelectorAll("[data-edit-cat]").forEach(b=>b.onclick=()=>openCatForm(b.dataset.editCat));
+ el.querySelectorAll("[data-del-cat]").forEach(b=>b.onclick=()=>deleteCategory(b.dataset.delCat));
+}
+
+function openCatForm(id){
+ editingCatId=id||null;
+ const cat=id?findCat(id):null;
+ document.getElementById("catNameInput").value=cat?cat.name:"";
+ document.getElementById("catKwInput").value=cat?cat.kw:"";
+ selectedColor=cat?cat.color:PALETTE[categories.length%PALETTE.length];
+ selectedEmoji=cat?cat.emoji:EMOJIS[categories.length%EMOJIS.length];
+ document.getElementById("catPalette").innerHTML=PALETTE.map(c=>`<div class="swatch ${c===selectedColor?"selected":""}" data-color="${c}" style="background:${c}"></div>`).join("");
+ document.getElementById("catPalette").querySelectorAll("[data-color]").forEach(s=>{
+  s.onclick=()=>{selectedColor=s.dataset.color;document.getElementById("catPalette").querySelectorAll(".swatch").forEach(x=>x.classList.toggle("selected",x.dataset.color===selectedColor))};
+ });
+ document.getElementById("catEmoji").innerHTML=EMOJIS.map(e=>`<div class="ep ${e===selectedEmoji?"selected":""}" data-emoji="${e}">${e}</div>`).join("");
+ document.getElementById("catEmoji").querySelectorAll("[data-emoji]").forEach(ep=>{
+  ep.onclick=()=>{selectedEmoji=ep.dataset.emoji;document.getElementById("catEmoji").querySelectorAll(".ep").forEach(x=>x.classList.toggle("selected",x.dataset.emoji===selectedEmoji))};
+ });
+ document.getElementById("catForm").style.display="block";
+ document.getElementById("catNameInput").focus();
+}
+
+document.getElementById("btnAddCat").onclick=()=>openCatForm(null);
+document.getElementById("catCancel").onclick=()=>{document.getElementById("catForm").style.display="none";editingCatId=null};
+
+document.getElementById("catSave").onclick=()=>{
+ const name=document.getElementById("catNameInput").value.trim();
+ const kw=document.getElementById("catKwInput").value.trim();
+ if(!name){toast("Введите название отсека");return}
+ if(editingCatId){
+  const cat=categories.find(c=>c.id===editingCatId);
+  if(cat){cat.name=name;cat.kw=kw;cat.color=selectedColor;cat.emoji=selectedEmoji}
+  toast("Отсек обновлён");
+ }else{
+  categories.push({id:"cat_"+Date.now(),name,kw,color:selectedColor,emoji:selectedEmoji,sys:false});
+  toast("Отсек «"+name+"» добавлен");
+ }
+ document.getElementById("catForm").style.display="none";
+ editingCatId=null;
+ renderCatList();
+ renderApp();
+};
+
+function deleteCategory(id){
+ const cat=categories.find(c=>c.id===id);
+ if(!cat)return;
+ if(!confirm(`Удалить отсек «${cat.name}»? Сообщения перейдут в «Без категории».`))return;
+ messages.forEach(m=>{if(m.catId===id)m.catId=uncategorized.id});
+ categories=categories.filter(c=>c.id!==id);
+ toast("Отсек удалён");
+ renderCatList();
+ renderApp();
+}
+
+const URGENT_WORDS=["срочно","дедлайн","до 18:00","до 15:00","блокирует","через 40 минут","оплатить до","сегодня"];
+const SPAM_WORDS=["скидк","рассылк","акци","промо","-40%","вакансия","мем","опрос"];
+function classify(text){
+ const lower=text.toLowerCase();
+ let bestCat=null,bestScore=0;
+ categories.forEach(c=>{
+  if(!c.kw)return;
+  const words=c.kw.split(",").map(w=>w.trim().toLowerCase()).filter(Boolean);
+  let score=0;
+  words.forEach(w=>{if(lower.includes(w))score++});
+  if(score>bestScore){bestScore=score;bestCat=c}
+ });
+ let imp="normal";
+ if(SPAM_WORDS.some(w=>lower.includes(w)))imp="spam";
+ else if(URGENT_WORDS.some(w=>lower.includes(w)))imp="urgent";
+ if(imp==="spam")bestCat=categories.find(c=>c.id==="spam")||bestCat;
+ if(!bestCat)bestCat=categories.find(c=>c.id==="personal")||uncategorized;
+ return {catId:bestCat.id,importance:imp};
+}
+
+const seed=[
+ {id:1,source:"Gmail",title:"Счёт на оплату от ООО «Вектор»",text:"Просим оплатить до конца недели. Сумма 48 000 ₽."},
+ {id:2,source:"Slack",title:"Анна: «Нужен ревью PR до 18:00»",text:"Блокирует релиз."},
+ {id:3,source:"Календарь",title:"Встреча с клиентом через 40 минут",text:"Zoom, обсуждение договора."},
+ {id:4,source:"Telegram",title:"Мама: «Позвони, когда сможешь»",text:"Семейный чат, вечером."},
+ {id:5,source:"Gmail",title:"Вакансия: Frontend-разработчик",text:"Рассылка hh.ru."},
+ {id:6,source:"Gmail",title:"Скидки недели: -40% на всё",text:"Магазин техники, акция."},
+ {id:7,source:"Slack",title:"#random: мем про кота",text:"Не требует ответа."},
+ {id:8,source:"Telegram",title:"Папа: «Купи хлеб»",text:"Семейный чат."},
+ {id:9,source:"Gmail",title:"Подтверждение подписки",text:"Чек и детали тарифа."},
+];
+const pool=[
+ {source:"Slack",title:"Пётр: «Скинь макет к созвону»",text:"Срочно до 15:00."},
+ {source:"Gmail",title:"Письмо от бухгалтерии",text:"Подпишите акт, оплата до конца дня."},
+ {source:"Telegram",title:"Мама: «Как дела?»",text:"Семейный чат."},
+ {source:"Gmail",title:"Вебинар: «Как не выгореть»",text:"Регистрация открыта."},
+ {source:"Gmail",title:"Новости маркетплейса",text:"Скидки на канцелярию, промо."},
+];
+
+let messages=[];
+let nextId=100;
+let newIds=new Set();
+let streamed=0;
+let viewMode="importance";
+let filterVal="all";
+let displayMode="group";
+let showQuickAdd=true;
+
+function initMessages(){
+ messages=seed.map(m=>{const {catId,importance}=classify(m.title+" "+m.text+" "+m.source);return {...m,catId,importance}});
+ nextId=100;
+}
+
+const IMP_LABEL={urgent:"Срочно",normal:"Обычно",spam:"Спам"};
+const IMP_COLOR={urgent:"var(--urgent)",normal:"var(--normal)",spam:"var(--spam)"};
+
+function getFiltered(){
+ if(filterVal==="all")return messages;
+ if(viewMode==="importance")return messages.filter(m=>m.importance===filterVal);
+ return messages.filter(m=>m.catId===filterVal);
+}
+
+function renderChips(){
+ const chipsEl=document.getElementById("chips");
+ if(viewMode==="importance"){
+  const counts={urgent:0,normal:0,spam:0};
+  messages.forEach(m=>counts[m.importance]++);
+  chipsEl.innerHTML=`
+   <button class="chip ${filterVal==="all"?"active":""}" data-filter="all">Все <span class="n">${messages.length}</span></button>
+   <button class="chip ${filterVal==="urgent"?"active":""}" data-filter="urgent"><span class="chip-dot" style="background:var(--urgent)"></span>Срочно <span class="n">${counts.urgent}</span></button>
+   <button class="chip ${filterVal==="normal"?"active":""}" data-filter="normal"><span class="chip-dot" style="background:var(--normal)"></span>Обычно <span class="n">${counts.normal}</span></button>
+   <button class="chip ${filterVal==="spam"?"active":""}" data-filter="spam"><span class="chip-dot" style="background:var(--spam)"></span>Спам <span class="n">${counts.spam}</span></button>`;
+ }else{
+  const counts={};
+  messages.forEach(m=>counts[m.catId]=(counts[m.catId]||0)+1);
+  chipsEl.innerHTML=`
+   <button class="chip ${filterVal==="all"?"active":""}" data-filter="all">Все <span class="n">${messages.length}</span></button>
+   ${allCats().map(c=>`<button class="chip ${filterVal===c.id?"active":""}" data-filter="${c.id}"><span class="chip-dot" style="background:${c.color}"></span>${escapeHtml(c.name)} <span class="n">${counts[c.id]||0}</span></button>`).join("")}`;
+ }
+ chipsEl.querySelectorAll(".chip").forEach(ch=>ch.onclick=()=>{filterVal=ch.dataset.filter;renderApp()});
+}
+
+function msgCard(m){
+ const cat=findCat(m.catId);
+ return `
+  <div class="item ${newIds.has(m.id)?"new":""}" data-id="${m.id}">
+   <div class="dot ${m.importance}"></div>
+   <div class="item-body">
+    <div class="item-top"><div class="item-title">${escapeHtml(m.title)}</div><div class="item-src">${escapeHtml(m.source)}</div></div>
+    <div class="item-text">${escapeHtml(m.text)}</div>
+    <div class="item-meta">
+     <span class="cat-badge" style="background:${cat.color}">${cat.emoji} ${escapeHtml(cat.name)}</span>
+     <span class="imp-badge ${m.importance}">${IMP_LABEL[m.importance]}</span>
+    </div>
+    <div class="item-actions">
+     <select data-move="${m.id}"><option value="">Переместить в…</option>${allCats().filter(c=>c.id!==m.catId).map(c=>`<option value="${c.id}">${c.emoji} ${escapeHtml(c.name)}</option>`).join("")}</select>
+     <select data-imp="${m.id}"><option value="">Важность…</option>${["urgent","normal","spam"].filter(i=>i!==m.importance).map(i=>`<option value="${i}">${IMP_LABEL[i]}</option>`).join("")}</select>
+     <button class="btn ghost-danger" data-del="${m.id}">Удалить</button>
+    </div>
+   </div>
+  </div>`;
+}
+
+function renderList(){
+ const container=document.getElementById("listContainer");
+ const filtered=getFiltered();
+ if(filtered.length===0){container.innerHTML='<div class="empty">Пусто — здесь нет сообщений.</div>';return}
+ if(displayMode==="filter"){
+  container.innerHTML=`<div class="list">${filtered.map(msgCard).join("")}</div>`;
+ }else{
+  let groups=[];
+  if(viewMode==="importance"){
+   groups=["urgent","normal","spam"].map(imp=>({title:IMP_LABEL[imp],color:IMP_COLOR[imp],items:filtered.filter(m=>m.importance===imp)})).filter(g=>g.items.length);
+  }else{
+   groups=allCats().map(c=>({title:c.emoji+" "+c.name,color:c.color,items:filtered.filter(m=>m.catId===c.id)})).filter(g=>g.items.length);
+  }
+  container.innerHTML=groups.map(g=>`
+   <div class="group">
+    <div class="group-title"><span class="gt-dot" style="background:${g.color}"></span>${escapeHtml(g.title)} · ${g.items.length}</div>
+    <div class="list">${g.items.map(msgCard).join("")}</div>
+   </div>`).join("");
+ }
+ container.querySelectorAll("[data-move]").forEach(sel=>{
+  sel.onchange=()=>{const m=messages.find(x=>x.id===Number(sel.dataset.move));if(m&&sel.value){m.catId=sel.value;renderApp();toast("Перемещено")}};
+ });
+ container.querySelectorAll("[data-imp]").forEach(sel=>{
+  sel.onchange=()=>{const m=messages.find(x=>x.id===Number(sel.dataset.imp));if(m&&sel.value){m.importance=sel.value;renderApp();toast("Важность изменена")}};
+ });
+ container.querySelectorAll("[data-del]").forEach(b=>{
+  b.onclick=()=>{
+   const id=Number(b.dataset.del);
+   const el=container.querySelector(`.item[data-id="${id}"]`);
+   if(el)el.classList.add("removing");
+   setTimeout(()=>{messages=messages.filter(x=>x.id!==id);renderApp();toast("Удалено")},180);
+  };
+ });
+ newIds.clear();
+}
+
+function renderStats(){
+ const spam=messages.filter(m=>m.importance==="spam").length;
+ document.getElementById("statProcessed").textContent=messages.length;
+ document.getElementById("statSpam").textContent=spam;
+ document.getElementById("statSaved").textContent=(messages.length*4)+" мин";
+ document.getElementById("statCats").textContent=categories.length;
+ document.getElementById("statStreamed").textContent=streamed;
+ const urgent=messages.filter(m=>m.importance==="urgent").length;
+ document.getElementById("digestCount").textContent=urgent;
+ document.getElementById("digestText").textContent=urgent===0?"Срочных сообщений нет. Отдыхайте.":`${urgent} сообщ. требуют внимания. Остальные ${messages.length-urgent} в порядке.`;
+}
+
+function renderApp(){
+ renderChips();
+ renderList();
+ renderStats();
+ document.getElementById("quickAdd").style.display=showQuickAdd?"flex":"none";
+}
+
+document.querySelectorAll(".mode-btn").forEach(btn=>{
+ btn.onclick=()=>{
+  document.querySelectorAll(".mode-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  viewMode=btn.dataset.mode;
+  filterVal="all";
+  renderApp();
+ };
+});
+
+document.getElementById("displayMode").onchange=function(){
+ displayMode=this.value;
+ toast("Режим отображения: "+(displayMode==="filter"?"фильтры":"группировка"));
+};
+document.getElementById("optQuickAdd").onchange=function(){
+ showQuickAdd=this.checked;
+ renderApp();
+};
+
+document.getElementById("quickAddBtn").onclick=()=>{
+ const input=document.getElementById("quickAddInput");
+ const name=input.value.trim();
+ if(!name){toast("Введите название");return}
+ categories.push({id:"cat_"+Date.now(),name,kw:"",color:PALETTE[categories.length%PALETTE.length],emoji:EMOJIS[categories.length%EMOJIS.length],sys:false});
+ input.value="";
+ toast("Отсек «"+name+"» добавлен");
+ renderApp();
+};
+
+const dayNames={0:"Вс",1:"Пн",2:"Вт",3:"Ср",4:"Чт",5:"Пт",6:"Сб"};
+function getSchedule(){
+ return {
+  time:document.getElementById("digestTime").value||"09:00",
+  freq:document.getElementById("digestFreq").value,
+  format:document.getElementById("digestFormat").value,
+  days:[...document.querySelectorAll("#daysPicker .day.on")].map(d=>Number(d.dataset.day))
+ };
+}
+function updateSchedulePreview(){
+ const s=getSchedule();
+ const fl={short:"только срочное",full:"все категории",digest:"только сводка"}[s.format];
+ let f="";
+ if(s.freq==="daily")f="каждый день";
+ else if(s.freq==="weekdays")f="по будням";
+ else if(s.freq==="weekly")f="раз в неделю";
+ else f="по дням: "+(s.days.length?s.days:[5]).sort().map(d=>dayNames[d]).join(", ");
+ document.getElementById("schedPreview").innerHTML=`Дайджест: <b>${f}</b>, в <b>${s.time}</b>, формат — <b>${fl}</b>.`;
+}
+document.querySelectorAll("#daysPicker .day").forEach(d=>{
+ d.onclick=()=>{d.classList.toggle("on");document.getElementById("digestFreq").value="custom";updateSchedulePreview()};
+});
+["digestTime","digestFreq","digestFormat"].forEach(id=>{
+ document.getElementById(id).addEventListener("input",updateSchedulePreview);
+ document.getElementById(id).addEventListener("change",updateSchedulePreview);
+});
+document.getElementById("saveSchedule").onclick=()=>toast("Расписание сохранено");
+
+function buildExport(){
+ return {
+  app:"quiet-hour",version:"categories-demo",
+  exportedAt:new Date().toISOString(),
+  categories,uncategorized,
+  messages:messages.map(m=>({id:m.id,source:m.source,title:m.title,text:m.text,catId:m.catId,importance:m.importance})),
+  schedule:getSchedule(),
+  display:{mode:displayMode,quickAdd:showQuickAdd}
+ };
+}
+function download(filename,content,mime){
+ const blob=new Blob([content],{type:mime});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;a.download=filename;
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+const exportPreview=document.getElementById("exportPreview");
+document.querySelectorAll(".export-card").forEach(card=>{
+ card.onclick=async()=>{
+  const type=card.dataset.export;
+  const data=buildExport();
+  const stamp=new Date().toISOString().slice(0,10);
+  if(type==="json"){
+   const c=JSON.stringify(data,null,2);
+   download(`quiet-hour-${stamp}.json`,c,"application/json");
+   exportPreview.textContent=c;exportPreview.classList.add("show");
+   toast("JSON экспортирован");
+  }else if(type==="csv"){
+   const esc=v=>`"${String(v).replace(/"/g,'""')}"`;
+   const rows=[["id","source","category","importance","title","text"].map(esc).join(",")];
+   data.messages.forEach(m=>{
+    const cat=findCat(m.catId).name;
+    rows.push([m.id,m.source,cat,m.importance,m.title,m.text].map(esc).join(","));
+   });
+   const c="\ufeff"+rows.join("\r\n");
+   download(`quiet-hour-${stamp}.csv`,c,"text/csv;charset=utf-8");
+   exportPreview.textContent=c.slice(0,600);exportPreview.classList.add("show");
+   toast("CSV экспортирован");
+  }else if(type==="md"){
+   const l=[`# Отчёт «Тихий час»`,"",`Экспортировано: ${new Date(data.exportedAt).toLocaleString("ru-RU")}`,"","## Сообщения"];
+   ["urgent","normal","spam"].forEach(imp=>{
+    const list=data.messages.filter(m=>m.importance===imp);
+    if(!list.length)return;
+    l.push(`### ${IMP_LABEL[imp]}`);
+    list.forEach(m=>l.push(`- **[${m.source}]** ${m.title} — ${m.text} _(${findCat(m.catId).name})_`));
+    l.push("");
+   });
+   const c=l.join("\n");
+   download(`quiet-hour-${stamp}.md`,c,"text/markdown");
+   exportPreview.textContent=c.slice(0,600);exportPreview.classList.add("show");
+   toast("Markdown-отчёт экспортирован");
+  }else if(type==="clipboard"){
+   const c=JSON.stringify(data,null,2);
+   try{
+    await navigator.clipboard.writeText(c);
+    exportPreview.textContent=c;exportPreview.classList.add("show");
+    toast("Скопировано в буфер");
+   }catch(e){
+    exportPreview.textContent=c;exportPreview.classList.add("show");
+    toast("Не удалось скопировать");
+   }
+  }
+ };
+});
+
+let pendingImport=null;
+const importFile=document.getElementById("importFile");
+const importPreview=document.getElementById("importPreview");
+const btnImportApply=document.getElementById("btnImportApply");
+document.getElementById("btnImport").onclick=()=>importFile.click();
+importFile.onchange=()=>{
+ const file=importFile.files[0];
+ if(!file)return;
+ const reader=new FileReader();
+ reader.onload=()=>{
+  try{
+   const data=JSON.parse(reader.result);
+   if(!data||!Array.isArray(data.messages))throw new Error("Неверный формат");
+   pendingImport=data;
+   btnImportApply.disabled=false;
+   btnImportApply.style.opacity="1";
+   importPreview.textContent=`Файл: ${file.name}\nСообщений: ${data.messages.length}\n\n`+JSON.stringify(data,null,2).slice(0,500)+"…";
+   importPreview.classList.add("show");
+  }catch(e){
+   pendingImport=null;
+   btnImportApply.disabled=true;
+   btnImportApply.style.opacity=".5";
+   importPreview.textContent="Ошибка: "+e.message;
+   importPreview.classList.add("show");
+   toast("Не удалось прочитать файл");
+  }
+ };
+ reader.readAsText(file);
+};
+btnImportApply.onclick=()=>{
+ if(!pendingImport)return;
+ const data=pendingImport;
+ if(Array.isArray(data.categories))categories=data.categories;
+ if(data.uncategorized)uncategorized=data.uncategorized;
+ messages=data.messages.map((m,i)=>({
+  id:Number(m.id)||(i+1),
+  source:m.source||"—",
+  title:m.title||"Без заголовка",
+  text:m.text||"",
+  catId:m.catId||uncategorized.id,
+  importance:["urgent","normal","spam"].includes(m.importance)?m.importance:"normal"
+ }));
+ nextId=Math.max(100,...messages.map(m=>m.id))+1;
+ if(data.display){
+  displayMode=data.display.mode||"group";
+  document.getElementById("displayMode").value=displayMode;
+  showQuickAdd=data.display.quickAdd!==false;
+  document.getElementById("optQuickAdd").checked=showQuickAdd;
+ }
+ pendingImport=null;importFile.value="";
+ btnImportApply.disabled=true;btnImportApply.style.opacity=".5";
+ importPreview.classList.remove("show");
+ renderCatList();renderApp();toast("Данные импортированы");
+};
+
+document.getElementById("btnResetAll").onclick=()=>{
+ if(!confirm("Удалить все данные?"))return;
+ categories=[
+  {id:"family",name:"Семья",color:"#22c55e",emoji:"👨‍👩‍👧",kw:"мама, папа, родственники, семейный чат",sys:false},
+  {id:"work",name:"Работа",color:"#6c8cff",emoji:"💼",kw:"коллега, ревью, дедлайн, созвон, проект",sys:false},
+  {id:"personal",name:"Личное",color:"#a855f7",emoji:"🙂",kw:"друзья, личное, хобби",sys:false},
+  {id:"finance",name:"Финансы",color:"#f0b429",emoji:"💰",kw:"счёт, оплата, банк, перевод, подписка",sys:false},
+  {id:"spam",name:"Спам",color:"#64748b",emoji:"📣",kw:"скидка, акция, рассылка, промо",sys:false},
+ ];
+ uncategorized={id:"uncategorized",name:"Без категории",color:"#8b93a7",emoji:"📥",kw:"",sys:true};
+ initMessages();streamed=0;filterVal="all";viewMode="importance";displayMode="group";showQuickAdd=true;
+ document.querySelectorAll(".mode-btn").forEach(b=>b.classList.toggle("active",b.dataset.mode==="importance"));
+ document.getElementById("displayMode").value="group";
+ document.getElementById("optQuickAdd").checked=true;
+ importPreview.classList.remove("show");exportPreview.classList.remove("show");
+ renderCatList();renderApp();toast("Все данные сброшены");
+};
+
+document.getElementById("saveAll").onclick=()=>{
+ const toSave={categories,uncategorized,display:{mode:displayMode,quickAdd:showQuickAdd},schedule:getSchedule()};
+ localStorage.setItem("qh-config",JSON.stringify(toSave));
+ toast("Настройки сохранены");
+};
+
+let streamTimer;
+document.getElementById("optStream").onchange=function(){
+ if(this.checked){
+  streamTimer=setInterval(()=>{
+   const pick=pool[Math.floor(Math.random()*pool.length)];
+   const {catId,importance}=classify(pick.title+" "+pick.text+" "+pick.source);
+   const msg={id:nextId++,...pick,catId,importance};
+   messages.unshift(msg);
+   streamed++;
+   newIds.add(msg.id);
+   renderApp();
+  },5000);
+  toast("Поток включён");
+ }else{
+  clearInterval(streamTimer);
+  toast("Поток выключен");
+ }
+};
+
+initMessages();
+renderCatList();
+renderApp();
+updateSchedulePreview();
+</script>
+</body>
+</html>
